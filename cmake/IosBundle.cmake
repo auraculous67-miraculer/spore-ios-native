@@ -1,6 +1,23 @@
 # recomp_ios_bundle(<target>): an iPad app under build/ios, signed automatically by
 # Xcode with RECOMP_IOS_TEAM, carrying the game files under game/.
 function(recomp_ios_bundle target)
+  set(RECOMP_IOS_DEVICE_FAMILY "2" CACHE STRING "Targeted iOS device family (1=iPhone, 2=iPad, 1,2=Universal)")
+  string(REPLACE "," ";" _recomp_ios_family_list "${RECOMP_IOS_DEVICE_FAMILY}")
+  set(_recomp_ios_families "")
+  set(RECOMP_IOS_UIDEVICE_FAMILY_XML "")
+  foreach(_family IN LISTS _recomp_ios_family_list)
+    string(STRIP "${_family}" _family)
+    if(_family MATCHES "^[12]$")
+      list(APPEND _recomp_ios_families "${_family}")
+      string(APPEND RECOMP_IOS_UIDEVICE_FAMILY_XML "<integer>${_family}</integer>")
+    else()
+      message(FATAL_ERROR "Invalid RECOMP_IOS_DEVICE_FAMILY entry '${_family}' (expected 1, 2, or 1,2)")
+    endif()
+  endforeach()
+  if(NOT _recomp_ios_families)
+    message(FATAL_ERROR "RECOMP_IOS_DEVICE_FAMILY must not be empty")
+  endif()
+  string(JOIN "," _recomp_xcode_device_family ${_recomp_ios_families})
   configure_file(${RECOMP_ROOT}/host/Info-ios.plist.in ${CMAKE_BINARY_DIR}/generated/Info-ios.plist @ONLY)
   set_target_properties(${target} PROPERTIES
     MACOSX_BUNDLE ON
@@ -11,7 +28,7 @@ function(recomp_ios_bundle target)
     XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${RECOMP_IOS_TEAM}"
     XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development"
-    XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2"
+    XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "${_recomp_xcode_device_family}"
     XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 17.0
     XCODE_ATTRIBUTE_ENABLE_BITCODE NO
     "XCODE_ATTRIBUTE_INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad"
